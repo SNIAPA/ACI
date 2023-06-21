@@ -1,15 +1,17 @@
-use std::{thread, error::Error, fs::OpenOptions};
+use std::thread;
 use libloading::{self, os::unix::Library};
 
 use ctor::{dtor,ctor};
 
 mod logger;
+mod process;
+mod util;
 
 use logger::Logger;
+use util::Result;
 
 static mut LOGGER: Option<Logger> = None;
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 #[ctor]
 fn load(){
