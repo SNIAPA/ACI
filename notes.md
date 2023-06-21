@@ -1,0 +1,6 @@
+name offset 0x219
+hp offset 0x100
+0x2c pitch offset
+0x35 yew offset
+player list 0x5a3520
+local player 0x5a3518
