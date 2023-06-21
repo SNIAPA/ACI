@@ -12,3 +12,4 @@ crate_type = ["cdylib"]
 [dependencies]
 chrono = "0.4.26"
 ctor = "0.2.2"
+libloading = "0.8.0"
