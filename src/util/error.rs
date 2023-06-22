@@ -4,7 +4,7 @@ use std::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct CheatError{
-    message: &'static str
+    message: String
 }
 
 
@@ -17,7 +17,7 @@ impl fmt::Display for CheatError {
 }
 
 impl CheatError {
-    pub fn new(message: &str) -> CheatError{
+    pub fn new(message: String) -> CheatError{
         CheatError {message}
     }
 }

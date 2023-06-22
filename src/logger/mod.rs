@@ -48,28 +48,32 @@ macro_rules! log {
 }
 
 pub struct Logger{
-    file: File,
+    current_file: File,
+    last_file: File,
     pub console: Child
 }
 impl Logger {
     pub fn new() -> Result<Logger, std::io::Error> {
-        let file_name = format!("{}log_{}.log", LOG_DIR, Utc::now().format("%Y-%m-%d %H:%M:%S"));
+        let curret_file_name = format!("{}log-{}.log", LOG_DIR, Utc::now().format("%Y-%m-%d %H:%M:%S"));
+        let last_file_name = format!("{}log-last.log", LOG_DIR );
 
         if !(Path::new(LOG_DIR).is_dir()){
             create_dir(LOG_DIR)?;
         }
-        let file = File::create(&file_name)?;
+        let current_file = File::create(&curret_file_name)?;
+        let last_file = File::create(&last_file_name)?;
         let console = Command::new("alacritty")
-            .args(["-e", "tail","-n","100000", "-f", &file_name])
+            .args(["-e", "tail","-n","100000", "-f", &last_file_name])
             .spawn()?;
 
-        let mut logger = Logger {file, console};
+        let mut logger = Logger {last_file,current_file, console};
         logger.log(INIT_MESSAGE)?;
         Ok(logger)
 
     }
     pub fn log(& mut self, message: &str) -> Result<(),std::io::Error> {
-        self.file.write(format!("{}\n",message).as_bytes())?;
+        self.last_file.write(format!("{}\n",message).as_bytes())?;
+        self.current_file.write(format!("{}\n",message).as_bytes())?;
         Ok(())
     }
 

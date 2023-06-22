@@ -1,20 +1,40 @@
+use libloading;
+
 use crate::util::{
     Result,
     error::CheatError
 };
 
 pub struct Special{
-    pub module: BaseModule
+    pub name: String,
+    pub offset: usize
 }
 
 pub struct Executable{
     pub path: String,
-    pub module: BaseModule
-}
-
-pub struct BaseModule{
     pub name: String,
     pub offset: usize
+}
+
+pub trait BaseModule {
+    fn get_offset(&self) -> usize;
+    fn get_name(&self) -> String;
+}
+
+impl BaseModule for Module {
+    fn get_offset(&self) -> usize {
+        match self {
+            Module::Special(x) => x.offset,
+            Module::Executable(x) => x.offset
+        }
+        
+    }
+    fn get_name(&self) -> String {
+        match self {
+            Module::Special(x) => x.name.clone(),
+            Module::Executable(x) => x.name.clone()
+        }
+    }
 }
 
 pub enum Module{
@@ -23,7 +43,7 @@ pub enum Module{
 }
 
 impl Module {
-    pub fn load(maps_line: &str) -> Result<Module>{
+    pub fn load_from_maps_line(maps_line: &str) -> Result<Module>{
 
         let mut columns:Vec<String> = maps_line
             .split_whitespace()
@@ -31,7 +51,7 @@ impl Module {
             .collect();
 
         if columns.len() < 6 {
-            return Err(CheatError::new("invalid vmaps len").into());
+            return Err(CheatError::new("invalid vmaps len".to_owned()).into());
         }
         if columns.len() > 6 {
             columns[5] = columns[5..].join(" ");
@@ -43,11 +63,11 @@ impl Module {
         let offset = usize::from_str_radix(offset,16)?; 
         if ["[stack]", "[heap]"].contains(&&name.as_str()) {
             name = name.replace("[", "").replace("]", "");
-            return Ok(Module::Special(Special {module: BaseModule {offset, name}}));
+            return Ok(Module::Special(Special {offset, name}));
         };
 
         if !columns[1].contains("x") {
-            return Err(CheatError::new("cant load module").into());
+            return Err(CheatError::new("cant load module".to_owned()).into());
         }
 
         let file_name =  name.split("/")
@@ -57,7 +77,8 @@ impl Module {
             .next()
             .ok_or("error parsing vmaps")?
             .to_string();
+        
 
-        Ok(Module::Executable(Executable {path: name, module: BaseModule {offset, name: file_name}}))
+        Ok(Module::Executable(Executable {path: name, offset, name: file_name}))
     }
 }
