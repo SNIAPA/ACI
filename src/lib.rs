@@ -1,4 +1,5 @@
-use std::{thread, fs::OpenOptions, os::unix::prelude::FileExt, time::Duration};
+use std::{
+    thread, fs::OpenOptions, time::Duration, ffi::CString};
 use chrono::Utc;
 
 use ctor::{dtor,ctor};
@@ -6,12 +7,13 @@ use ctor::{dtor,ctor};
 mod logger;
 mod process;
 mod util;
+mod mem;
 
+use libc::c_void;
 use logger::Logger;
 use util::Result;
 use process::Process;
-
-use crate::process::module::{BaseModule, Executable, Module};
+use mem::*;
 
 static mut LOGGER: Option<Logger> = None;
 
@@ -24,7 +26,7 @@ fn load(){
             
         }
         if let Err(e) = main() {
-            log!("{}",e);
+            log!("{}", e);
             unload()
         }
 
@@ -34,34 +36,28 @@ fn load(){
 fn main() -> Result<()>{
 
     let proc = Process::this()?;
-    log!("MODULES:\n{}", proc
-        .modules
-        .values()
-        .into_iter()
-        .map(|module|{
-            format!("{} =<> {:#x}", module.get_name(), module.get_offset())
-        })
-        .collect::<Vec<String>>()
-        .join("\n")
-    );
 
     loop {
-        if let Module::Executable(client_module) = proc.modules.get("linux_64_client").ok_or("linux_64_client not loaded")? {
-            let mem = OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(format!("{}/mem", proc.dir))?;
-            let mut buf = [0u8; 32];
-            mem.read_at(&mut buf, client_module.offset as u64 + 0x5a3518 + 0x100)?;
-            log!("{:?}", buf);
+        let mut mem = proc.get_mem()?;
 
+        let player_pointer_addres = 0x5a3518;
+        let hp_offset = 0x100;
+        let name_offset = 0x219;
+
+        let hp = derefrence_pointer::<u32>(player_pointer_addres, [hp_offset]);
+        log!("hp: {:?}", *hp);
+
+        let mut name = derefrence_pointer::<i8>(player_pointer_addres, [name_offset]);
+        
+        unsafe{
+            let name = CString::from_raw(name);
+            log!("name: {:?}", name);
         }
+
         thread::sleep(Duration::from_secs(1));
     }
-
-
-
-
+ 
+    #[allow(unreachable_code)]
     Ok(())
 }
 
@@ -69,9 +65,9 @@ fn main() -> Result<()>{
 fn unload(){ 
     log!("unloading");
 
-    unsafe{
-        LOGGER.as_mut().unwrap().console.kill().unwrap();
-    }
+  //  unsafe{
+  //      LOGGER.as_mut().unwrap().console.kill().unwrap();
+  //  }
 
 }
 

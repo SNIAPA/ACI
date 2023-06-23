@@ -1,14 +1,16 @@
-use std::{collections::HashMap, process, fs::read_to_string};
+use std::{process, fs::{read_to_string, OpenOptions, File}, collections::HashMap};
+use chrono::Utc;
 
 pub mod module;
 
-use self::module::{Module, BaseModule};
-use crate::util::Result;
+use crate::{util::Result, log, process::module::BaseModule};
+
+use self::module::Module;
 
 pub struct Process {
-    pid: u32,
+    pub pid: u32,
     pub dir: String,
-    pub modules: HashMap<String, Module>,
+    pub modules: HashMap<String, Vec<Module>>,
 }
 
 impl Process {
@@ -22,18 +24,31 @@ impl Process {
         Ok(Process { pid, dir, modules })
     }
     
-    pub fn load_modules(dir: &str) -> Result<HashMap<String,Module>> {
+    pub fn load_modules(dir: &str) -> Result<HashMap<String, Vec<Module>>> {
 
         let maps = read_to_string(format!("{dir}/maps"))?;
 
         let modules = maps.lines()
             .filter_map(|line| {
                 Module::load_from_maps_line(line).ok()
-             })
-             .map(|module| {
-                (module.get_name(),module)
-            })
-            .collect();
-        Ok(modules)
+            });
+        let mut grouped_modules: HashMap<String, Vec<Module>> = HashMap::new();
+        for module in modules {
+            if let Some(list) = grouped_modules.get_mut(&module.get_name()) {
+                list.push(module)
+            } 
+            else {
+                grouped_modules.insert(module.get_name(), vec![module]);
+            }
+        }
+        Ok(grouped_modules)
+    }
+
+    pub fn get_mem(&self) -> Result<File> {
+
+        Ok(OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(format!("{}/mem", self.dir))?)
     }
 }

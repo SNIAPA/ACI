@@ -1,5 +1,8 @@
-use std::{fs::{File, create_dir, OpenOptions}, io::Write, process::{Child, Command, Stdio}, path::Path};
+use std::{io,fs::{File, create_dir, OpenOptions}, io::Write, process::{Child, Command, Stdio}, path::Path, os::unix::prelude::AsRawFd, error::Error};
 use chrono::Utc;
+use libc::{termios, TCSAFLUSH};
+
+use crate::util::Result;
 
 static LOG_DIR: &str = "/tmp/ACI/";
 static INIT_MESSAGE: &str = r#"
@@ -30,7 +33,6 @@ static INIT_MESSAGE: &str = r#"
 macro_rules! log {
 
     ($($message: expr),*) => {
-        use chrono::Utc;
 
         unsafe{
             let msg = &format!($($message),*);
@@ -52,8 +54,9 @@ pub struct Logger{
     last_file: File,
     pub console: Child
 }
+
 impl Logger {
-    pub fn new() -> Result<Logger, std::io::Error> {
+    pub fn new() -> Result<Logger> {
         let curret_file_name = format!("{}log-{}.log", LOG_DIR, Utc::now().format("%Y-%m-%d %H:%M:%S"));
         let last_file_name = format!("{}log-last.log", LOG_DIR );
 
@@ -62,8 +65,10 @@ impl Logger {
         }
         let current_file = File::create(&curret_file_name)?;
         let last_file = File::create(&last_file_name)?;
-        let console = Command::new("alacritty")
+        let path = std::env::var("TERM")?;
+        let console = Command::new(path)
             .args(["-e", "tail","-n","100000", "-f", &last_file_name])
+            .stdin(Stdio::piped())
             .spawn()?;
 
         let mut logger = Logger {last_file,current_file, console};
@@ -71,7 +76,7 @@ impl Logger {
         Ok(logger)
 
     }
-    pub fn log(& mut self, message: &str) -> Result<(),std::io::Error> {
+    pub fn log(& mut self, message: &str) -> Result<()> {
         self.last_file.write(format!("{}\n",message).as_bytes())?;
         self.current_file.write(format!("{}\n",message).as_bytes())?;
         Ok(())
