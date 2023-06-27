@@ -1,8 +1,11 @@
+#![feature(strict_provenance)]
+
 use std::{
-    thread, fs::OpenOptions, time::Duration, ffi::CString};
+    thread, fs::OpenOptions, time::Duration, ffi::{CString, CStr}};
 use chrono::Utc;
 
 use ctor::{dtor,ctor};
+use null_terminated;
 
 mod logger;
 mod process;
@@ -15,8 +18,9 @@ use util::Result;
 use process::Process;
 use mem::*;
 
-static mut LOGGER: Option<Logger> = None;
+use crate::mem::nts::to_string;
 
+static mut LOGGER: Option<Logger> = None;
 
 #[ctor]
 fn load(){
@@ -33,25 +37,49 @@ fn load(){
     });
 }
 
+const PLAYER: usize = 0x5a3518;
+const HP: usize = 0x100;
+const NAME: usize = 0x219;
+const PLAYER_LIST: usize = 0x5a3520;
+const POS_X: usize = 0x8;
+const POS_Y: usize = 0xc;
+
+#[derive(Debug)]
+struct Ent {
+    name: *mut nts::nts,
+    hp: *mut usize,
+    x: *mut f32,
+    y: *mut f32,
+}
+
+impl Ent {
+    pub fn load(address: usize) -> Ent{
+        Ent{
+            name: follow_offsets::<nts::nts>(address+NAME, []),
+            hp: follow_offsets::<usize>(address+HP, []),
+            x: follow_offsets::<f32>(address+POS_X, []),
+            y: follow_offsets::<f32>(address+POS_Y, []),
+        }
+    }
+}
+
 fn main() -> Result<()>{
 
     let proc = Process::this()?;
+    let local_player_ptr = follow_offsets::<usize>(PLAYER_LIST, []);
+    unsafe{
+        let ent = Ent::load(*local_player_ptr);
+        log!("{:?}<{:?}>: {:?},{:?}",(*(ent.name)).as_string(), *(ent.hp) , *(ent.x), *(ent.y));
+    }
 
     loop {
-        let mut mem = proc.get_mem()?;
 
-        let player_pointer_addres = 0x5a3518;
-        let hp_offset = 0x100;
-        let name_offset = 0x219;
-
-        let hp = derefrence_pointer::<u32>(player_pointer_addres, [hp_offset]);
-        log!("hp: {:?}", *hp);
-
-        let mut name = derefrence_pointer::<i8>(player_pointer_addres, [name_offset]);
-        
+        let players = follow_offsets::<[usize;3]>(PLAYER_LIST, [0x8]);
         unsafe{
-            let name = CString::from_raw(name);
-            log!("name: {:?}", name);
+            for player in *players {
+                let ent = Ent::load(player);
+                log!("{:?}<{:?}>: {:?},{:?}",(*(ent.name)).as_string()?, *(ent.hp) , *(ent.x), *(ent.y));
+            }
         }
 
         thread::sleep(Duration::from_secs(1));
@@ -65,9 +93,9 @@ fn main() -> Result<()>{
 fn unload(){ 
     log!("unloading");
 
-  //  unsafe{
-  //      LOGGER.as_mut().unwrap().console.kill().unwrap();
-  //  }
+   unsafe{
+       LOGGER.as_mut().unwrap().console.kill().unwrap();
+   }
 
 }
 

@@ -36,6 +36,23 @@ macro_rules! log {
 
         unsafe{
             let msg = &format!($($message),*);
+
+            crate::LOGGER
+                .as_mut()
+                .unwrap()
+                .log(&format!("{}",msg))
+                .unwrap();
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! dbg {
+
+    ($($message: expr),*) => {
+
+        unsafe{
+            let msg = &format!($($message),*);
             let timestamp = Utc::now().format("%Y-%m-%d %H:%M:%S");
             let line = std::line!();
             let file = std::file!();
