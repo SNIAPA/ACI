@@ -1,12 +1,13 @@
 use std::{process, fs::{read_to_string, OpenOptions, File}, collections::HashMap};
-use chrono::Utc;
+
 
 pub mod module;
 
-use crate::{util::Result, log, process::module::BaseModule};
+use crate::{util::Result, process::module::BaseModule};
 
 use self::module::Module;
 
+#[allow(dead_code)]
 pub struct Process {
     pub pid: u32,
     pub dir: String,
@@ -14,6 +15,7 @@ pub struct Process {
 }
 
 impl Process {
+    #[allow(dead_code)]
     pub fn this() -> Result<Self> {
         let pid = process::id();
         let dir = format!("/proc/{}", pid);
@@ -44,6 +46,7 @@ impl Process {
         Ok(grouped_modules)
     }
 
+    #[allow(dead_code)]
     pub fn get_mem(&self) -> Result<File> {
 
         Ok(OpenOptions::new()

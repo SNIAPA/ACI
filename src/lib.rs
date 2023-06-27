@@ -1,24 +1,21 @@
 #![feature(strict_provenance)]
 
-use std::{
-    thread, fs::OpenOptions, time::Duration, ffi::{CString, CStr}};
-use chrono::Utc;
+use std::{thread, time::Duration};
 
 use ctor::{dtor,ctor};
-use null_terminated;
-
 mod logger;
 mod process;
 mod util;
 mod mem;
+mod cheat;
+mod structures;
 
-use libc::c_void;
 use logger::Logger;
 use util::Result;
-use process::Process;
-use mem::*;
+use structures::ent::*;
 
-use crate::mem::nts::to_string;
+use crate::mem::follow_offsets;
+
 
 static mut LOGGER: Option<Logger> = None;
 
@@ -27,10 +24,11 @@ fn load(){
     thread::spawn(|| {
         unsafe {
             LOGGER = Some(Logger::new().expect("failed to init logger"));
-            
         }
-        if let Err(e) = main() {
-            log!("{}", e);
+
+        if let Err(e) = std::panic::catch_unwind(main) {
+            log!("error: {:?}", e);
+            thread::sleep(Duration::from_secs(1));
             unload()
         }
 
@@ -38,53 +36,56 @@ fn load(){
 }
 
 const PLAYER: usize = 0x5a3518;
-const HP: usize = 0x100;
-const NAME: usize = 0x219;
 const PLAYER_LIST: usize = 0x5a3520;
-const POS_X: usize = 0x8;
-const POS_Y: usize = 0xc;
-const POS_Z: usize = 0x10;
 const PLAYER_COUNT: usize = 0x5a352c;
 
-#[derive(Debug)]
-struct Ent {
-    name: *mut nts::nts,
-    hp: *mut usize,
-    x: *mut f32,
-    y: *mut f32,
-    z: *mut f32,
-}
 
-impl Ent {
-    pub fn load(address: usize) -> Ent{
-        Ent{
-            name: follow_offsets::<nts::nts>(address+NAME, []),
-            hp: follow_offsets::<usize>(address+HP, []),
-            x: follow_offsets::<f32>(address+POS_X, []),
-            y: follow_offsets::<f32>(address+POS_Y, []),
-            z: follow_offsets::<f32>(address+POS_Z, []),
-        }
-    }
-}
 
+//MVP: make the ofsets into a statics somehow
 fn main() -> Result<()>{
 
-    let proc = Process::this()?;
-    let local_player_ptr = follow_offsets::<usize>(PLAYER_LIST, []);
-    unsafe{
-        let ent = Ent::load(*local_player_ptr);
-        log!("{:?}<{:?}>: {:?},{:?},{:?}",(*(ent.name)).as_string()?, *(ent.hp) , *(ent.x), *(ent.y), *(ent.z));
+    //let proc = Process::this()?;
+    let local_player_ptr = follow_offsets::<Ent>(PLAYER, [0x0]);
+
+    log!("+{:=^78}+","");
+    log!("| {:^20} | {:^20} | {:^30} |","name","hp","pos");
+    log!("+{:_^78}+","");
+    log!("{}", *local_player_ptr);
+    log!("+{:=^78}+","");
+
+    let player_count = follow_offsets::<u8>(PLAYER_COUNT, []);
+
+    //INFO: usefull ent debug thig
+    #[cfg(debug_assertions)]
+    {
+        log!("{:?}",*local_player_ptr);
     }
 
-    loop {
 
-        let players = follow_offsets::<[usize;3]>(PLAYER_LIST, [0x8]);
+    loop {
+        unsafe {
+            (*local_player_ptr).hp = 100;
+        }
+
         unsafe{
-            for player in *players {
-                let ent = Ent::load(player);
-                log!("{:?}<{:?}>: {:?},{:?},{:?}",(*(ent.name)).as_string()?, *(ent.hp) , *(ent.x), *(ent.y), *(ent.z));
+            if player_count.read_unaligned() == 0 {
+                thread::sleep(Duration::from_secs(1));
+                continue;
             }
         }
+        let players = follow_offsets::<[*mut Ent;255]>(PLAYER_LIST, [0x8]);
+        log!("+{:=^78}+","");
+        log!("| {:^20} | {:^20} | {:^30} |","name","hp","pos");
+        log!("+{:_^78}+","");
+        let mut lines: Vec<String> = Vec::new();
+        unsafe{
+            let players = &mut (*players)[..player_count.read_unaligned() as usize -1usize];
+            for player in players {
+                lines.push(player.read().to_string());
+            }
+        }
+        log!("{}",lines.join(format!("\n+{:-^78}+\n","").as_str()));
+        log!("+{:=^78}+","");
 
         thread::sleep(Duration::from_secs(1));
     }

@@ -2,6 +2,7 @@ if [ "$EUID" = 0 ]
   then echo "do not run as root"
   exit
 fi
+set -e
 
 inject()
 {
@@ -9,11 +10,11 @@ inject()
 
   if [ -z "$proc" ] 
   then
-    echo "AssaultCube is not runnig"
+    echo "AssaultCube is not running"
     exit
   fi
 
-  lib=$(realpath ./target/x86_64-unknown-linux-gnu/debug/libACI.so)
+  lib=$(realpath ./target/x86_64-unknown-linux-gnu/debug/libaci.so)
   echo $lib
 
   sudo gdb -n -q -p $proc -batch \
@@ -31,7 +32,7 @@ attach(){
 
   if [ -z "$proc" ] 
   then
-    echo "AssaultCube is not runnig"
+    echo "AssaultCube is not running"
     exit
   fi
 

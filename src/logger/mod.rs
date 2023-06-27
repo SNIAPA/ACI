@@ -1,6 +1,5 @@
-use std::{io,fs::{File, create_dir, OpenOptions}, io::Write, process::{Child, Command, Stdio}, path::Path, os::unix::prelude::AsRawFd, error::Error};
+use std::{fs::{File, create_dir}, io::Write, process::{Child, Command, Stdio}, path::Path};
 use chrono::Utc;
-use libc::{termios, TCSAFLUSH};
 
 use crate::util::Result;
 
