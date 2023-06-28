@@ -39,7 +39,7 @@ attach(){
   sudo gdb -q -p $proc
 }
 build(){
-  cargo +nightly build --target x86_64-unknown-linux-gnu
+  cargo build
 }
 bai(){
   build

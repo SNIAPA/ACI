@@ -1,24 +1,41 @@
-use std::f32::consts::PI;
+use std::collections::HashMap;
 
-use crate::{structures::{Pos, ViewAngles}, log};
+use crate::structures::ent::Ent;
+use crate::{
+    mem::follow_offsets,
+    offsets::{PLAYER, PLAYER_COUNT, PLAYER_LIST, VIEW_MATRIX},
+    structures::ViewMatrix,
+};
 
+use self::aimbot::Aimbot;
 
-pub fn calc_angle(root: Pos, target: Pos) -> ViewAngles{
+pub mod aimbot;
 
+pub struct Cheat {
+    pub view_matrix: *mut ViewMatrix,
+    pub local_player: *mut Ent,
+    pub player_count: *mut u32,
+    pub player_list: *mut [*mut Ent; 255],
+    pub modules: HashMap<String, Box<dyn CheatModule>>,
+}
 
+pub trait CheatModule {
+    fn cheat(&self) -> *mut Cheat;
+}
 
-    let delta = Pos {
-        x: root.x - target.x,
-        y: root.y - target.y,
-        z: root.z - target.z
-    };
-    
-    let hyp = f32::sqrt(delta.x.powi(2) + delta.y.powi(2) + delta.z.powi(2));
+impl Cheat {
+    pub fn init() -> Cheat {
+        Cheat {
+            view_matrix: follow_offsets(VIEW_MATRIX, []),
+            local_player: follow_offsets(PLAYER, []),
+            player_count: follow_offsets(PLAYER_COUNT, []),
+            player_list: follow_offsets(PLAYER_LIST, []),
+            modules: HashMap::new(),
+        }
+    }
 
-    let yaw =  f32::atan2(delta.y,delta.x) * 180f32/PI + 270f32;
-    let pitch = f32::acos(delta.z/hyp) * 180f32/PI - 90f32;
-
-    ViewAngles{ pitch, yaw }
-
-
+    pub fn load_modules(&mut self) {
+        let aimbot = Aimbot::new(self as *mut Cheat);
+        self.modules.insert("aimbot".to_owned(), Box::new(aimbot));
+    }
 }
