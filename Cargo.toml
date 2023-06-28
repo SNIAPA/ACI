@@ -11,8 +11,13 @@ name = "aci"
 crate_type = ["cdylib"]
 
 [dependencies]
+bindgen = "0.66.1"
 chrono = "0.4.26"
 ctor = "0.2.2"
 libc = "0.2.146"
 libloading = "0.8.0"
 null-terminated = "0.3.17"
+
+[build-dependencies]
+bindgen = "*"
+cc = "*"

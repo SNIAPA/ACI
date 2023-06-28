@@ -14,6 +14,29 @@ impl CheatModule for Aimbot {
     fn cheat(&self) -> *mut Cheat {
         self.cheat
     }
+    unsafe fn run(&self) {
+        let mut players = self.cheat.read().player_list.read();
+        let local_player = self.cheat.read().local_player.read();
+
+        players.sort_by(|&a, &b| {
+            a.read()
+                .pos
+                .dist(&local_player.pos)
+                .partial_cmp(&b.read().pos.dist(&local_player.pos))
+                .unwrap()
+        });
+
+        if let Some(target) = players.iter().copied().find(|&x| {
+            let view_angles = Self::calc_angle(local_player.pos.clone(), x.read().pos);
+            (*x).hp <= 100
+                && ((view_angles.yaw - local_player.view_angles.yaw).abs()
+                    + (view_angles.pitch - local_player.view_angles.pitch).abs()
+                    < self.aim_fov)
+        }) {
+            let angle_delta = Self::calc_angle(local_player.pos.clone(), target.read().pos);
+            self.cheat.read().local_player.read().view_angles = angle_delta;
+        }
+    }
 }
 
 impl Aimbot {
@@ -39,27 +62,4 @@ impl Aimbot {
         ViewAngles { pitch, yaw }
     }
 
-    pub unsafe fn run(&self) {
-        let mut players = self.cheat.read().player_list.read();
-        let local_player = self.cheat.read().local_player.read();
-
-        players.sort_by(|&a, &b| {
-            a.read()
-                .pos
-                .dist(&local_player.pos)
-                .partial_cmp(&b.read().pos.dist(&local_player.pos))
-                .unwrap()
-        });
-
-        if let Some(target) = players.iter().copied().find(|&x| {
-            let view_angles = Self::calc_angle(local_player.pos.clone(), x.read().pos);
-            (*x).hp <= 100
-                && ((view_angles.yaw - local_player.view_angles.yaw).abs()
-                    + (view_angles.pitch - local_player.view_angles.pitch).abs()
-                    < self.aim_fov)
-        }) {
-            let angle_delta = Self::calc_angle(local_player.pos.clone(), target.read().pos);
-            self.cheat.read().local_player.read().view_angles = angle_delta;
-        }
-    }
 }

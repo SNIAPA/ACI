@@ -8,8 +8,10 @@ use crate::{
 };
 
 use self::aimbot::Aimbot;
+use self::esp::Esp;
 
 pub mod aimbot;
+pub mod esp;
 
 pub struct Cheat {
     pub view_matrix: *mut ViewMatrix,
@@ -21,6 +23,7 @@ pub struct Cheat {
 
 pub trait CheatModule {
     fn cheat(&self) -> *mut Cheat;
+    unsafe fn run(&self);
 }
 
 impl Cheat {
@@ -37,5 +40,16 @@ impl Cheat {
     pub fn load_modules(&mut self) {
         let aimbot = Aimbot::new(self as *mut Cheat);
         self.modules.insert("aimbot".to_owned(), Box::new(aimbot));
+
+        let esp = Esp::new(self as *mut Cheat);
+        self.modules.insert("esp".to_owned(), Box::new(esp));
+    }
+
+    pub fn run(&mut self) {
+        self.modules.values().for_each(|module|{
+            unsafe{
+                module.run()
+            }
+        })
     }
 }

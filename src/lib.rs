@@ -43,6 +43,7 @@ fn main() -> Result<()>{
     let mut cheat = Cheat::init();
     cheat.load_modules();
 
+    cheat.run();
 
     Ok(())
 }
