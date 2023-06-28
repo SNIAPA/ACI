@@ -10,6 +10,13 @@ pub struct Pos{
     pub z: f32
 }
 
+impl Pos {
+    pub fn dist(&self, target: &Pos) -> f32{
+        f32::sqrt((self.x-target.x).powi(2) + (self.y-target.y).powi(2) + (self.z-target.z).powi(2))
+    }
+}
+
+
 #[derive(Debug, Clone, Copy)]
 pub struct ViewAngles {
     pub yaw: f32,

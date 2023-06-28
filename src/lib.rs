@@ -1,6 +1,6 @@
 #![feature(strict_provenance)]
 
-use std::{thread, time::Duration};
+use std::{thread, time::Duration, cmp::Ordering};
 
 use ctor::{dtor,ctor};
 mod logger;
@@ -40,6 +40,7 @@ const PLAYER_LIST: usize = 0x5a3520;
 const PLAYER_COUNT: usize = 0x5a352c;
 const VIEW_MATRIX: usize = 0x59e0c0;
 
+const AIM_FOV:f32 = 10.0;
 
 //MVP: make the ofsets into a statics somehow
 fn main() -> Result<()>{
@@ -48,20 +49,32 @@ fn main() -> Result<()>{
     let viewMatrix = follow_offsets::<ViewMatrix>(VIEW_MATRIX,[]);
 
     thread::spawn(||{
-    let local_player_ptr = follow_offsets::<Ent>(PLAYER, [0x0]);
         let player_count = follow_offsets::<u8>(PLAYER_COUNT, []);
+        let local_player_ptr = follow_offsets::<Ent>(PLAYER, [0x0]);
         loop {
             unsafe {
-                thread::sleep(Duration::from_millis(1));
                 if player_count.read_unaligned() == 0 {
                     continue;
                 }
 
                 let players = follow_offsets::<[*mut Ent;255]>(PLAYER_LIST, [0x8]);
                 let players = &mut (*players)[..player_count.read_unaligned() as usize -1usize];
-                let angle_delta = calc_angle((*local_player_ptr).pos.clone(), (*players[0]).pos.clone());
-                log!("{:?}", angle_delta);
-                (*local_player_ptr).view_angles = angle_delta;
+                players.sort_by(|&a,&b|{
+                    (*a).pos.dist(&(*local_player_ptr).pos)
+                        .partial_cmp(&(*b).pos.dist(&(*local_player_ptr).pos)).unwrap()
+
+                });
+
+                if let Some(target) = players.iter().find(|&&x|{
+                        let view_angles = calc_angle((*local_player_ptr).pos.clone(), (*x).pos);
+                        (*x).hp <= 100 && ((view_angles.yaw - (*local_player_ptr).view_angles.yaw).abs() + (view_angles.pitch - (*local_player_ptr).view_angles.pitch).abs() < AIM_FOV)
+                        
+                    }) {
+
+                    let angle_delta = calc_angle((*local_player_ptr).pos.clone(), (**target).pos);
+                    (*local_player_ptr).view_angles = angle_delta;
+
+                }
             }
             
         }
