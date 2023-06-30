@@ -14,9 +14,7 @@ mod offsets;
 
 use logger::Logger;
 use util::Result;
-use structures::ent::*;
 
-use crate::{mem::follow_offsets, structures::ViewMatrix};
 
 
 static mut LOGGER: Option<Logger> = None;
@@ -43,7 +41,10 @@ fn main() -> Result<()>{
     let mut cheat = Cheat::init();
     cheat.load_modules();
 
-    cheat.run();
+    loop{
+        cheat.run();
+        thread::sleep(Duration::from_millis(100))
+    }
 
     Ok(())
 }

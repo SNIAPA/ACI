@@ -1,6 +1,8 @@
 mod gl_bindings;
 use gl_bindings::*;
 
+use crate::log;
+
 use super::{CheatModule, Cheat};
 
 pub struct Esp {
@@ -12,13 +14,22 @@ impl CheatModule for Esp {
         self.cheat
     }
     unsafe fn run(&self) {
-        self.switch_to_2d();
+        println!("esp");
+        //self.switch_to_2d();
+        //log!("{:?}", Self::window_dimensions());
+        //self.restore();
     }
 }
 
 impl Esp {
     pub fn new(cheat: *mut Cheat) -> Self {
         Esp { cheat }
+    } 
+    fn restore(&self) {
+        unsafe {
+            gl_bindings::glPopMatrix();
+            gl_bindings::glPopAttrib();
+        }
     }
 
     fn switch_to_2d(&self) -> (GLint, GLint) {
@@ -50,5 +61,13 @@ impl Esp {
 
             (viewport[2], viewport[3])
         }
+    } 
+    pub fn window_dimensions() -> (i32, i32) {
+        let mut viewport: [GLint; 4] = [0; 4];
+        unsafe {
+            let viewport_ptr = &mut viewport[0] as *mut GLint;
+            gl_bindings::glGetIntegerv(GL_VIEWPORT, viewport_ptr);
+        };
+        (viewport[2], viewport[3])
     }
 }

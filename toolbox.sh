@@ -14,7 +14,7 @@ inject()
     exit
   fi
 
-  lib=$(realpath ./target/x86_64-unknown-linux-gnu/debug/libaci.so)
+  lib=$(realpath ./target/debug/libaci.so)
   echo $lib
 
   sudo gdb -n -q -p $proc -batch \

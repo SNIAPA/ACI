@@ -8,3 +8,5 @@ name offset 0x219
 hp offset 0x100
 viewAngles offset 0x38 
 pos offset 0x8
+
+gl_drawframe 0x48cfa2 <gl_drawframe(int, int, float, float, int)+2530>

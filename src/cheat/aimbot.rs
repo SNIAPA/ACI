@@ -15,6 +15,15 @@ impl CheatModule for Aimbot {
         self.cheat
     }
     unsafe fn run(&self) {
+        println!("AIMBOT");
+        
+        let player_count = self.cheat.clone().read().player_count;
+
+        println!("{}", *player_count);
+
+        return;
+        if *player_count < 2 {return};
+
         let mut players = self.cheat.read().player_list.read();
         let local_player = self.cheat.read().local_player.read();
 
