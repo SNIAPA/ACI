@@ -1,56 +1,37 @@
 use super::{Cheat, CheatModule};
-use crate::structures::{ent::Ent, Pos, ViewAngles};
-use std::f32::consts::PI;
+use crate::{structures::{ent::Ent, Pos, ViewAngles}, util::{Result, error::CheatError}, mem::follow_offsets, offsets::PLAYER_COUNT};
+use std::{f32::consts::PI, sync::{Mutex, Arc, RwLock}, thread, time::Duration};
 
 static DEFAULT_AIM_FOV: f32 = 10.0;
 
 pub struct Aimbot {
     last_target: *mut Ent,
     aim_fov: f32,
-    cheat: *mut Cheat,
+    cheat: Arc<RwLock<Cheat>>,
 }
 
 impl CheatModule for Aimbot {
-    fn cheat(&self) -> *mut Cheat {
-        self.cheat
-    }
-    unsafe fn run(&self) {
-        println!("AIMBOT");
+    unsafe fn run(&self) -> Result<()>{
         
-        let player_count = self.cheat.clone().read().player_count;
 
-        println!("{}", *player_count);
+        let player_count = self.cheat.read().unwrap().player_count;
 
-        return;
-        if *player_count < 2 {return};
+        if *player_count == 0 {
+            return Ok(())
+        };
 
-        let mut players = self.cheat.read().player_list.read();
-        let local_player = self.cheat.read().local_player.read();
+        let players = &mut self.cheat.read().unwrap().player_list.read()[..(player_count.read()-1) as usize] as *mut _; 
+        let local_player = self.cheat.read().unwrap().local_player.read();
+        let players = players as *mut [*mut Ent];
+        println!("{:?}",*players);
 
-        players.sort_by(|&a, &b| {
-            a.read()
-                .pos
-                .dist(&local_player.pos)
-                .partial_cmp(&b.read().pos.dist(&local_player.pos))
-                .unwrap()
-        });
-
-        if let Some(target) = players.iter().copied().find(|&x| {
-            let view_angles = Self::calc_angle(local_player.pos.clone(), x.read().pos);
-            (*x).hp <= 100
-                && ((view_angles.yaw - local_player.view_angles.yaw).abs()
-                    + (view_angles.pitch - local_player.view_angles.pitch).abs()
-                    < self.aim_fov)
-        }) {
-            let angle_delta = Self::calc_angle(local_player.pos.clone(), target.read().pos);
-            self.cheat.read().local_player.read().view_angles = angle_delta;
-        }
+        return Ok(());
     }
 }
 
 impl Aimbot {
 
-    pub fn new(cheat: *mut Cheat) -> Aimbot{
+    pub fn new(cheat: Arc<RwLock<Cheat>>) -> Aimbot{
         Aimbot { last_target: std::ptr::null_mut::<Ent>(), aim_fov: DEFAULT_AIM_FOV, cheat}
 
     }

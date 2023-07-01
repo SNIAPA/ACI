@@ -1,28 +1,27 @@
 mod gl_bindings;
-use gl_bindings::*;
+use std::sync::{Mutex, Arc, RwLock};
+use crate::{util::Result, log};
 
-use crate::log;
+use gl_bindings::*;
 
 use super::{CheatModule, Cheat};
 
 pub struct Esp {
-    cheat: *mut Cheat,
+    cheat: Arc<RwLock<Cheat>>,
 }
 
 impl CheatModule for Esp {
-    fn cheat(&self) -> *mut Cheat {
-        self.cheat
-    }
-    unsafe fn run(&self) {
-        println!("esp");
+    unsafe fn run(&self) -> Result<()>{
+        println!("ESP");
         //self.switch_to_2d();
         //log!("{:?}", Self::window_dimensions());
         //self.restore();
+        Ok(())
     }
 }
 
 impl Esp {
-    pub fn new(cheat: *mut Cheat) -> Self {
+    pub fn new(cheat: Arc<RwLock<Cheat>>) -> Self {
         Esp { cheat }
     } 
     fn restore(&self) {

@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[repr(packed)]
-#[derive(Debug)]
+#[derive(Debug,Clone, Copy)]
 pub struct Nts([u8;255]);
 
 

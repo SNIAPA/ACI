@@ -70,7 +70,7 @@ impl Module {
             .collect();
 
         if columns.len() < 6 {
-            return Err(CheatError::new("invalid vmaps len".to_owned()).into());
+            return Err(CheatError::new("invalid vmaps len").into());
         }
         if columns.len() > 6 {
             columns[5] = columns[5..].join(" ");
@@ -101,7 +101,7 @@ impl Module {
         };
 
         if !columns[1].contains("x") {
-            return Err(CheatError::new("cant load module".to_owned()).into());
+            return Err(CheatError::new("cant load module").into());
         }
 
         let file_name =  name.split("/")

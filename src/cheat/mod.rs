@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex, RwLock};
+use crate::util::Result;
 
 use crate::structures::ent::Ent;
 use crate::{
@@ -17,13 +19,12 @@ pub struct Cheat {
     pub view_matrix: *mut ViewMatrix,
     pub local_player: *mut Ent,
     pub player_count: *mut u32,
-    pub player_list: *mut [*mut Ent; 255],
+    pub player_list: *mut [u64; 255],
     pub modules: HashMap<String, Box<dyn CheatModule>>,
 }
 
 pub trait CheatModule {
-    fn cheat(&self) -> *mut Cheat;
-    unsafe fn run(&self);
+    unsafe fn run(&self) -> Result<()>;
 }
 
 impl Cheat {
@@ -37,19 +38,23 @@ impl Cheat {
         }
     }
 
-    pub fn load_modules(&mut self) {
-        let aimbot = Aimbot::new(self as *mut Cheat);
-        self.modules.insert("aimbot".to_owned(), Box::new(aimbot));
+    pub fn load_modules(arcrl: Arc<RwLock<Cheat>>) -> Result<()>{
 
-        let esp = Esp::new(self as *mut Cheat);
-        self.modules.insert("esp".to_owned(), Box::new(esp));
+        
+        let aimbot = Aimbot::new(arcrl.clone());
+        arcrl.write().unwrap().modules.insert("aimbot".to_owned(), Box::new(aimbot));
+
+        let esp = Esp::new(arcrl.clone());
+        arcrl.write().unwrap().modules.insert("esp".to_owned(), Box::new(esp));
+        Ok(())
     }
 
-    pub fn run(&mut self) {
-        self.modules.values().for_each(|module|{
+    pub fn run(arcrl: Arc<RwLock<Cheat>>) -> Result<()>{
+        arcrl.read().unwrap().modules.values().for_each(|module|{
             unsafe{
-                module.run()
+                module.run();
             }
-        })
+        });
+        Ok(())
     }
 }

@@ -17,7 +17,7 @@ impl fmt::Display for CheatError {
 }
 
 impl CheatError {
-    pub fn new(message: String) -> CheatError{
-        CheatError {message}
+    pub fn new(message: &str) -> CheatError{
+        CheatError {message:message.to_owned()}
     }
 }
