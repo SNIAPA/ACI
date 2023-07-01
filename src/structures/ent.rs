@@ -7,8 +7,8 @@ use crate::mem::nts::Nts;
 
 use super::{Pos, ViewAngles};
 
-#[repr(C,packed)]
-#[derive(Debug)]
+#[derive(Debug,Clone, Copy)]
+#[repr(C)]
 pub struct  Ent {
     pub _pad1: [u8; 0x8],
     pub pos: Pos, //0x8

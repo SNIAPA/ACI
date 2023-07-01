@@ -4,7 +4,7 @@ pub mod ent;
 pub type ViewMatrix = [[f32; 4]; 4];
 
 #[derive(Debug, Clone, Copy)]
-#[repr(C, packed)]
+#[repr(C)]
 pub struct Pos{
     pub x: f32,
     pub y: f32,

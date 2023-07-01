@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, RwLock};
+use crate::log;
 use crate::util::Result;
 
 use crate::structures::ent::Ent;
@@ -19,42 +20,23 @@ pub struct Cheat {
     pub view_matrix: *mut ViewMatrix,
     pub local_player: *mut Ent,
     pub player_count: *mut u32,
-    pub player_list: *mut [u64; 255],
-    pub modules: HashMap<String, Box<dyn CheatModule>>,
 }
 
+
 pub trait CheatModule {
-    unsafe fn run(&self) -> Result<()>;
+    unsafe fn run(&self, writable: &mut Cheat) -> Result<()>;
 }
 
 impl Cheat {
     pub fn init() -> Cheat {
         Cheat {
-            view_matrix: follow_offsets(VIEW_MATRIX, []),
-            local_player: follow_offsets(PLAYER, []),
+            view_matrix: follow_offsets(VIEW_MATRIX, [0]),
+            local_player: follow_offsets(PLAYER, [0]),
             player_count: follow_offsets(PLAYER_COUNT, []),
-            player_list: follow_offsets(PLAYER_LIST, []),
-            modules: HashMap::new(),
         }
     }
-
-    pub fn load_modules(arcrl: Arc<RwLock<Cheat>>) -> Result<()>{
-
-        
-        let aimbot = Aimbot::new(arcrl.clone());
-        arcrl.write().unwrap().modules.insert("aimbot".to_owned(), Box::new(aimbot));
-
-        let esp = Esp::new(arcrl.clone());
-        arcrl.write().unwrap().modules.insert("esp".to_owned(), Box::new(esp));
-        Ok(())
+    unsafe fn get_players(&self) -> *mut [*mut Ent; 32] {
+        follow_offsets::<[*mut Ent;32]>(PLAYER_LIST, [0x8])
     }
 
-    pub fn run(arcrl: Arc<RwLock<Cheat>>) -> Result<()>{
-        arcrl.read().unwrap().modules.values().for_each(|module|{
-            unsafe{
-                module.run();
-            }
-        });
-        Ok(())
-    }
 }

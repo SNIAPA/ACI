@@ -1,8 +1,8 @@
 #![feature(strict_provenance)]
 
-use std::{thread, time::Duration, cmp::Ordering, sync::{Arc, Mutex, RwLock}};
+use std::{thread, time::Duration, cmp::Ordering, sync::{Arc, Mutex, RwLock}, collections::HashMap};
 
-use cheat::{Cheat, aimbot::Aimbot, esp::Esp};
+use cheat::{Cheat, aimbot::Aimbot, esp::Esp, CheatModule};
 use ctor::{dtor,ctor};
 mod logger;
 mod process;
@@ -36,17 +36,29 @@ fn load(){
 }
 
 
+pub fn run(modules:& HashMap<String, Box<dyn CheatModule>>, writable: &mut Cheat) -> Result<()>{
+    for module in modules.values() {
+        unsafe{
+            let _ = module.run(writable);
+        }
+    }
+    Ok(())
+}
 
 fn main() -> Result<()>{
 
     let mut cheat_wraped = Arc::new(RwLock::new(Cheat::init()));
-    let cheat_clone = cheat_wraped.clone();
-    Cheat::load_modules(cheat_clone)?;
+    let aimbot = Aimbot::new();
+    let esp = Esp::new(cheat_wraped.clone());
+    let modules: HashMap<String, Box<dyn CheatModule>> = HashMap::from([
+        ("aimbot".to_owned(), Box::new(aimbot) as _),
+        ("esp".to_owned(), Box::new(esp) as _),
+    ]);
 
     loop {
         unsafe{
-            thread::sleep(Duration::from_millis(100));
-            Cheat::run(cheat_wraped.clone())?;
+            thread::sleep(Duration::from_millis(1));
+            run(&modules, &mut cheat_wraped.write().unwrap())?;
         }
          
     }

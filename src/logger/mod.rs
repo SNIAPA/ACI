@@ -52,7 +52,7 @@ macro_rules! dbg {
 
         unsafe{
             let msg = &format!($($message),*);
-            let timestamp = Utc::now().format("%Y-%m-%d %H:%M:%S");
+            let timestamp = ::chrono::Utc::now().format("%Y-%m-%d %H:%M:%S");
             let line = std::line!();
             let file = std::file!();
 

@@ -11,11 +11,12 @@ pub struct Esp {
 }
 
 impl CheatModule for Esp {
-    unsafe fn run(&self) -> Result<()>{
-        println!("ESP");
-        //self.switch_to_2d();
-        //log!("{:?}", Self::window_dimensions());
-        //self.restore();
+    unsafe fn run(&self,_writable: &mut Cheat) -> Result<()>{
+        dbg!();
+        log!("{:?}", Self::window_dimensions());
+        dbg!();
+        self.switch_to_2d();
+        self.restore();
         Ok(())
     }
 }
@@ -64,8 +65,11 @@ impl Esp {
     pub fn window_dimensions() -> (i32, i32) {
         let mut viewport: [GLint; 4] = [0; 4];
         unsafe {
+            dbg!();
             let viewport_ptr = &mut viewport[0] as *mut GLint;
+            dbg!();
             gl_bindings::glGetIntegerv(GL_VIEWPORT, viewport_ptr);
+            dbg!();
         };
         (viewport[2], viewport[3])
     }
